@@ -175,6 +175,33 @@
       </div>
     </dialog>
 
+    <dialog id="lawProvisionDialog" class="dialog">
+      <div class="dialog__head">
+        <div>
+          <div class="dialog__title" id="lawProvisionTitle">유사 조항</div>
+          <div class="dialog__sub muted" id="lawProvisionSub"></div>
+        </div>
+        <button id="closeLawProvisionDialog" class="btn btn--ghost" type="button">닫기</button>
+      </div>
+      <div class="dialog__body">
+        <div class="tableWrap">
+          <div class="tableScroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width: 24%">항목</th>
+                  <th style="width: 18%">근거 조문</th>
+                  <th style="width: 58%">조항 내용</th>
+                </tr>
+              </thead>
+              <tbody id="lawProvisionBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel__hint muted" id="lawProvisionHint"></div>
+      </div>
+    </dialog>
+
     <script src="./laws.data.js"></script>
     <script src="./app.js"></script>
   </body>

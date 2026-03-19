@@ -145,6 +145,12 @@ function main() {
   const provisionDetailSub = document.getElementById("provisionDetailSub");
   const provisionDetailBody = document.getElementById("provisionDetailBody");
   const provisionDetailHint = document.getElementById("provisionDetailHint");
+  const lawProvisionDialog = document.getElementById("lawProvisionDialog");
+  const closeLawProvisionDialogBtn = document.getElementById("closeLawProvisionDialog");
+  const lawProvisionTitle = document.getElementById("lawProvisionTitle");
+  const lawProvisionSub = document.getElementById("lawProvisionSub");
+  const lawProvisionBody = document.getElementById("lawProvisionBody");
+  const lawProvisionHint = document.getElementById("lawProvisionHint");
 
   const favs = loadFavs();
 
@@ -227,6 +233,60 @@ function main() {
     return tokens.every((t) => law._idx.includes(t));
   }
 
+  function openLawProvisionDetail(lawId, provisionId) {
+    if (!lawId || !provisionId) return;
+    if (!lawProvisionBody) return;
+
+    const law = normalized.find((x) => x.id === lawId);
+    const p = provisionById.get(provisionId);
+    if (!law) return;
+
+    const has = (law.provisions || []).includes(provisionId);
+    const ref = law.provisionRefs?.[provisionId];
+    const content = safeText(ref?.content || "").trim();
+
+    lawProvisionBody.innerHTML = "";
+
+    if (lawProvisionTitle) lawProvisionTitle.textContent = `유사 조항: ${law.title}`;
+    if (lawProvisionSub) {
+      lawProvisionSub.textContent = p ? `${p.group} · ${p.label}` : provisionId;
+    }
+
+    const tr = document.createElement("tr");
+    const c1 = document.createElement("td");
+    c1.textContent = p?.label || provisionId;
+
+    const c2 = document.createElement("td");
+    c2.innerHTML = has ? `<b>${safeText(ref?.article || "—")}</b>` : "<small class='muted'>해당 없음</small>";
+
+    const c3 = document.createElement("td");
+    if (!has) {
+      c3.innerHTML = "<small class='muted'>이 법에서 유사 조항을 아직 매핑하지 않았습니다.</small>";
+    } else {
+      if (!content) {
+        c3.innerHTML = "<small class='muted'>조항 본문(content)이 아직 입력되지 않았습니다. laws.data.js의 provisionRefs에 content를 추가해 주세요.</small>";
+      } else {
+        const pre = document.createElement("pre");
+        pre.style.whiteSpace = "pre-wrap";
+        pre.style.margin = "0";
+        pre.style.fontFamily = "var(--sans)";
+        pre.textContent = content;
+        c3.appendChild(pre);
+      }
+    }
+
+    tr.appendChild(c1);
+    tr.appendChild(c2);
+    tr.appendChild(c3);
+    lawProvisionBody.appendChild(tr);
+
+    if (lawProvisionHint) {
+      lawProvisionHint.textContent = "표시되는 본문은 현재 데이터(laws.data.js)에 저장된 조항 텍스트입니다.";
+    }
+
+    if (typeof lawProvisionDialog?.showModal === "function") lawProvisionDialog.showModal();
+  }
+
   function openProvisionDetail(provisionId) {
     if (!provisionId) return;
     const p = provisionById.get(provisionId);
@@ -274,6 +334,13 @@ function main() {
           c3.textContent = title;
         }
       }
+
+      // 타법 행 클릭 → 해당 유사조항만 별도 팝업
+      tr.addEventListener("click", () => {
+        if (!has) return;
+        openLawProvisionDetail(law.id, provisionId);
+      });
+      tr.style.cursor = has ? "pointer" : "default";
 
       tr.appendChild(c1);
       tr.appendChild(c2);
@@ -580,6 +647,14 @@ function main() {
 
   provisionDetailDialog?.addEventListener("click", (e) => {
     if (e.target === provisionDetailDialog) provisionDetailDialog.close();
+  });
+
+  closeLawProvisionDialogBtn?.addEventListener("click", () => {
+    lawProvisionDialog?.close();
+  });
+
+  lawProvisionDialog?.addEventListener("click", (e) => {
+    if (e.target === lawProvisionDialog) lawProvisionDialog.close();
   });
 
   exportBtn.addEventListener("click", () => {

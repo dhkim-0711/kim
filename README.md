@@ -2,6 +2,42 @@
 
 `index.html`을 더블클릭해서 브라우저로 열면 됩니다(서버 불필요).
 
+## (옵션) 나만 쓰는 프로그램(.exe)로 만들기 (Windows)
+
+이 프로젝트는 정적 파일이라, Electron으로 **로컬 전용 데스크톱 앱**으로 포장할 수 있습니다.
+
+### 1) Node.js 설치
+
+- Node.js **LTS** 설치 (Windows x64)
+- 설치 후 PowerShell을 새로 열고 아래가 동작하는지 확인:
+
+```bash
+node -v
+npm -v
+```
+
+### 2) 실행(개발 모드)
+
+이 폴더에서:
+
+```bash
+npm install
+npm run dev
+```
+
+### 3) 배포용 설치 파일 만들기(.exe)
+
+```bash
+npm run dist
+```
+
+완료되면 `dist/` 아래에 설치형 실행파일(NSIS)이 생성됩니다.
+
+### 아이콘/이름 커스터마이즈
+
+- 앱 이름/설치 파일 이름은 `package.json`의 `build.productName`, `build.artifactName`에서 바꿀 수 있습니다.
+- 아이콘은 `build/README.txt`를 참고해 `build/icon.ico` (필수)와 `build/icon.png` (선택)를 넣어주세요.
+
 ## 기능
 
 - 검색: 법명/부처/산업/키워드(지원수단 포함) 검색

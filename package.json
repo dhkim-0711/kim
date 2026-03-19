@@ -1,0 +1,45 @@
+{
+  "name": "lawboard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "산업진흥법 한눈에 보기 (로컬 전용 데스크톱 앱)",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "electron .",
+    "dist": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "local.lawboard.app",
+    "productName": "산업진흥법 한눈에 보기",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "files": [
+      "electron/**",
+      "build/**",
+      "*.html",
+      "*.css",
+      "*.js",
+      "*.pdf",
+      "README.md"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

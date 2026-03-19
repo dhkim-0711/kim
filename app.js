@@ -32,6 +32,20 @@ function lawSearchIndex(law) {
   return parts.filter(Boolean).join(" ").toLowerCase();
 }
 
+function provisionSearchIndex(law, provision, ref) {
+  const parts = [
+    law?.title,
+    law?.industry,
+    provision?.group,
+    provision?.label,
+    provision?.hint,
+    ref?.article,
+    ref?.title,
+    ref?.content,
+  ];
+  return parts.filter(Boolean).join(" ").toLowerCase();
+}
+
 function loadFavs() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -144,6 +158,7 @@ function pickPreferredLawLink(links) {
 
 function main() {
   const qEl = document.getElementById("q");
+  const searchSuggestionsEl = document.getElementById("searchSuggestions");
   const onlyFavEl = document.getElementById("onlyFav");
   const industryChipsEl = document.getElementById("industryChips");
   const policyChipsEl = document.getElementById("policyChips");
@@ -193,9 +208,28 @@ function main() {
       _idx: lawSearchIndex(normalizedLaw),
     };
   });
+  const searchableLaws = normalized.filter((law) => law.id !== "ai-semicon-act-draft");
 
   const provisions = Array.isArray(PROVISIONS) ? PROVISIONS : [];
   const provisionById = new Map(provisions.map((p) => [p.id, p]));
+  const searchableProvisionEntries = searchableLaws.flatMap((law) =>
+    (law.provisions || [])
+      .map((provisionId) => {
+        const provision = provisionById.get(provisionId);
+        const ref = law.provisionRefs?.[provisionId];
+        if (!provision || !ref) return null;
+        return {
+          lawId: law.id,
+          lawTitle: law.title,
+          provisionId,
+          provisionLabel: provision.label,
+          article: safeText(ref.article),
+          title: safeText(ref.title),
+          _idx: provisionSearchIndex(law, provision, ref),
+        };
+      })
+      .filter(Boolean),
+  );
   const provisionGroups = uniq(provisions.map((p) => safeText(p.group)).filter(Boolean)).sort(
     (a, b) => a.localeCompare(b, "ko"),
   );
@@ -262,6 +296,75 @@ function main() {
     const tokens = tokenize(state.q);
     if (tokens.length === 0) return true;
     return tokens.every((t) => law._idx.includes(t));
+  }
+
+  function searchMatchesIndex(searchIndex, tokens) {
+    if (tokens.length === 0) return false;
+    return tokens.every((t) => safeText(searchIndex).includes(t));
+  }
+
+  function renderSearchSuggestions() {
+    if (!searchSuggestionsEl) return;
+    const tokens = tokenize(state.q);
+    searchSuggestionsEl.innerHTML = "";
+    searchSuggestionsEl.classList.toggle("is-hidden", tokens.length === 0);
+    if (tokens.length === 0) return;
+
+    const lawMatches = searchableLaws
+      .filter((law) => searchMatchesIndex(law._idx, tokens))
+      .slice(0, 6);
+
+    const provisionMatches = searchableProvisionEntries
+      .filter((entry) => searchMatchesIndex(entry._idx, tokens))
+      .slice(0, 8);
+
+    if (lawMatches.length === 0 && provisionMatches.length === 0) {
+      const empty = el("div", "muted", "검색어와 일치하는 법령·조항 탭이 없습니다.");
+      searchSuggestionsEl.appendChild(empty);
+      return;
+    }
+
+    if (lawMatches.length > 0) {
+      const group = el("div", "searchSuggestions__group");
+      group.appendChild(el("div", "searchSuggestions__label", "관련 법령"));
+      const wrap = el("div", "searchSuggestions__chips");
+      for (const law of lawMatches) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chip chip--search";
+        btn.innerHTML = `<strong>${safeText(law.title)}</strong><small>${safeText(law.industry || law.ministry)}</small>`;
+        btn.addEventListener("click", () => {
+          state.q = law.title;
+          qEl.value = law.title;
+          rerender();
+        });
+        wrap.appendChild(btn);
+      }
+      group.appendChild(wrap);
+      searchSuggestionsEl.appendChild(group);
+    }
+
+    if (provisionMatches.length > 0) {
+      const group = el("div", "searchSuggestions__group");
+      group.appendChild(el("div", "searchSuggestions__label", "관련 조항"));
+      const wrap = el("div", "searchSuggestions__chips");
+      for (const entry of provisionMatches) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chip chip--search";
+        btn.innerHTML =
+          `<strong>${safeText(entry.provisionLabel)}</strong>` +
+          `<small>${safeText(entry.lawTitle)} · ${safeText(entry.article || entry.title)}</small>`;
+        btn.addEventListener("click", () => {
+          state.provision = entry.provisionId;
+          renderProvisionPanel();
+          openLawProvisionDetail(entry.lawId, entry.provisionId);
+        });
+        wrap.appendChild(btn);
+      }
+      group.appendChild(wrap);
+      searchSuggestionsEl.appendChild(group);
+    }
   }
 
   function openLawProvisionDetail(lawId, provisionId) {
@@ -623,8 +726,9 @@ function main() {
   }
 
   function rerender() {
-    const list = normalized.filter(matches);
+    const list = searchableLaws.filter(matches);
     resultCountEl.textContent = `${list.length}건`;
+    renderSearchSuggestions();
     renderChips();
     renderProvisionPanel();
     if (state.view === "cards") renderCards(list);

@@ -117,6 +117,31 @@ function toCsv(rows) {
   return rows.map((r) => r.map(escape).join(",")).join("\n");
 }
 
+function buildLawLinks(law) {
+  const links = Array.isArray(law?.links) ? [...law.links] : [];
+  if (law?.officialLawTitle) {
+    links.push({
+      title: "국가법령정보센터",
+      url: `https://www.law.go.kr/%EB%B2%95%EB%A0%B9/${encodeURIComponent(law.officialLawTitle)}`,
+    });
+  } else if (law?.officialSearchQuery) {
+    links.push({
+      title: "국가법령정보센터 검색",
+      url: `https://www.law.go.kr/lsSc.do?query=${encodeURIComponent(law.officialSearchQuery)}`,
+    });
+  }
+  return links.filter((link) => link && (link.url || link.title));
+}
+
+function pickPreferredLawLink(links) {
+  const list = Array.isArray(links) ? links : [];
+  return (
+    list.find((link) => safeText(link?.title).includes("국가법령정보센터")) ||
+    list.find((link) => link?.url) ||
+    null
+  );
+}
+
 function main() {
   const qEl = document.getElementById("q");
   const onlyFavEl = document.getElementById("onlyFav");
@@ -154,14 +179,20 @@ function main() {
 
   const favs = loadFavs();
 
-  const normalized = (Array.isArray(LAWS) ? LAWS : []).map((l) => ({
-    ...l,
-    instruments: Array.isArray(l.instruments) ? l.instruments : [],
-    links: Array.isArray(l.links) ? l.links : [],
-    provisions: Array.isArray(l.provisions) ? l.provisions : [],
-    provisionRefs: l && typeof l.provisionRefs === "object" && l.provisionRefs ? l.provisionRefs : {},
-    _idx: lawSearchIndex(l),
-  }));
+  const normalized = (Array.isArray(LAWS) ? LAWS : []).map((l) => {
+    const links = buildLawLinks(l);
+    const normalizedLaw = {
+      ...l,
+      instruments: Array.isArray(l.instruments) ? l.instruments : [],
+      links,
+      provisions: Array.isArray(l.provisions) ? l.provisions : [],
+      provisionRefs: l && typeof l.provisionRefs === "object" && l.provisionRefs ? l.provisionRefs : {},
+    };
+    return {
+      ...normalizedLaw,
+      _idx: lawSearchIndex(normalizedLaw),
+    };
+  });
 
   const provisions = Array.isArray(PROVISIONS) ? PROVISIONS : [];
   const provisionById = new Map(provisions.map((p) => [p.id, p]));
@@ -268,6 +299,8 @@ function main() {
       } else {
         const pre = document.createElement("pre");
         pre.style.whiteSpace = "pre-wrap";
+        pre.style.wordBreak = "keep-all";
+        pre.style.overflowWrap = "anywhere";
         pre.style.margin = "0";
         pre.style.fontFamily = "var(--sans)";
         pre.textContent = content;
@@ -322,7 +355,7 @@ function main() {
         c3.innerHTML = "<small class='muted'>—</small>";
       } else {
         const title = safeText(ref?.title || p?.label || "—");
-        const link = (law.links || []).find((x) => x?.url);
+        const link = pickPreferredLawLink(law.links);
         if (link?.url) {
           const a = document.createElement("a");
           a.href = link.url;
@@ -518,14 +551,8 @@ function main() {
           a.appendChild(s);
           linksWrap.appendChild(a);
         }
-      } else {
-        const hint = el("a", "link", "링크 추가하기");
-        hint.href = "./laws.data.js";
-        hint.target = "_self";
-        hint.appendChild(el("span", null, "데이터 파일"));
-        linksWrap.appendChild(hint);
+        card.appendChild(linksWrap);
       }
-      card.appendChild(linksWrap);
 
       cardsViewEl.appendChild(card);
     }
@@ -573,12 +600,17 @@ function main() {
       if (links.length === 0) {
         c5.innerHTML = "<small class='muted'>—</small>";
       } else {
-        const a = document.createElement("a");
-        a.href = links[0].url;
-        a.target = "_blank";
-        a.rel = "noreferrer";
-        a.textContent = links[0].title || "열기";
-        c5.appendChild(a);
+        const wrap = el("div", "tableLinks");
+        for (const link of links) {
+          const a = document.createElement("a");
+          a.className = "tableLink";
+          a.href = link.url;
+          a.target = "_blank";
+          a.rel = "noreferrer";
+          a.textContent = link.title || "열기";
+          wrap.appendChild(a);
+        }
+        c5.appendChild(wrap);
       }
 
       tr.appendChild(c1);

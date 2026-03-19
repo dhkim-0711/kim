@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>산업진흥법 한눈에 보기</title>
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="brand">
+          <div class="brand__mark" aria-hidden="true">법</div>
+          <div class="brand__text">
+            <h1>산업진흥법 한눈에 보기</h1>
+            <p class="muted">
+              AI반도체법(가칭)과 유사한 산업진흥/특별법을 검색·필터·비교하세요.
+            </p>
+          </div>
+        </div>
+
+        <div class="controls">
+          <label class="control">
+            <span class="control__label">검색</span>
+            <input
+              id="q"
+              type="search"
+              placeholder="법명, 소관부처, 키워드(지원/인력/세제/펀드…)로 검색"
+              autocomplete="off"
+            />
+          </label>
+
+          <div class="control control--row">
+            <div class="segmented" role="tablist" aria-label="보기 방식">
+              <button id="viewCards" class="segmented__btn is-active" role="tab" aria-selected="true">
+                카드
+              </button>
+              <button id="viewTable" class="segmented__btn" role="tab" aria-selected="false">
+                표
+              </button>
+            </div>
+
+            <label class="checkbox">
+              <input id="onlyFav" type="checkbox" />
+              <span>즐겨찾기만</span>
+            </label>
+          </div>
+
+          <div class="filters">
+            <div class="filter">
+              <span class="filter__label">산업</span>
+              <div id="industryChips" class="chips" aria-label="산업 필터"></div>
+            </div>
+            <div class="filter">
+              <span class="filter__label">지원수단</span>
+              <div id="policyChips" class="chips" aria-label="지원수단 필터"></div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="reset" class="btn btn--ghost" type="button">필터 초기화</button>
+            <button id="export" class="btn" type="button">CSV 내보내기</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="meta">
+          <div class="meta__left">
+            <span id="resultCount" class="pill">0건</span>
+            <span class="muted">데이터는 `laws.data.js`에서 편집하세요.</span>
+          </div>
+          <div class="meta__right">
+            <span class="muted" id="lastUpdated"></span>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="AI반도체 산업육성법(안) 기초조항 비교">
+          <div class="panel__top">
+            <div>
+              <div class="panel__title">기초조항(구성안) → 타 법 비교</div>
+              <div class="panel__sub muted">
+                ‘(가칭)AI반도체 산업육성법 추진방안’ 2p의 항목을 클릭하면, 각 법에 유사 항목이 있는지 확인할 수 있습니다.
+              </div>
+            </div>
+            <div class="panel__actions">
+              <button id="clearProvision" class="btn btn--ghost" type="button">선택 해제</button>
+              <button id="openProvisionMatrix" class="btn" type="button">비교표 열기</button>
+            </div>
+          </div>
+
+          <div id="provisionGroups" class="provGroups"></div>
+
+          <div class="panel__hint muted" id="provisionHint"></div>
+        </section>
+
+        <section id="cardsView" class="cards"></section>
+
+        <section id="tableView" class="tableWrap is-hidden" aria-hidden="true">
+          <div class="tableScroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width: 34%">법/정책</th>
+                  <th style="width: 13%">산업</th>
+                  <th style="width: 13%">소관</th>
+                  <th style="width: 26%">핵심지원</th>
+                  <th style="width: 14%">링크</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div class="muted">
+          팁: 카드 오른쪽 상단의 ☆을 누르면 즐겨찾기에 저장됩니다(브라우저 로컬 저장).
+        </div>
+      </footer>
+    </div>
+
+    <dialog id="provisionDialog" class="dialog">
+      <div class="dialog__head">
+        <div>
+          <div class="dialog__title">기초조항 비교표</div>
+          <div class="dialog__sub muted" id="dialogSub"></div>
+        </div>
+        <button id="closeProvisionDialog" class="btn btn--ghost" type="button">닫기</button>
+      </div>
+      <div class="dialog__body">
+        <div class="tableWrap">
+          <div class="tableScroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width: 42%">항목</th>
+                  <th style="width: 19%">AI반도체(안)</th>
+                  <th style="width: 39%">타 법(포함)</th>
+                </tr>
+              </thead>
+              <tbody id="provisionMatrixBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="provisionDetailDialog" class="dialog">
+      <div class="dialog__head">
+        <div>
+          <div class="dialog__title" id="provisionDetailTitle">항목 상세</div>
+          <div class="dialog__sub muted" id="provisionDetailSub"></div>
+        </div>
+        <button id="closeProvisionDetailDialog" class="btn btn--ghost" type="button">닫기</button>
+      </div>
+      <div class="dialog__body">
+        <div class="tableWrap">
+          <div class="tableScroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width: 28%">법</th>
+                  <th style="width: 22%">근거 조문</th>
+                  <th style="width: 50%">조항 제목/설명</th>
+                </tr>
+              </thead>
+              <tbody id="provisionDetailBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel__hint muted" id="provisionDetailHint"></div>
+      </div>
+    </dialog>
+
+    <script src="./laws.data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
